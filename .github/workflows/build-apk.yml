@@ -20,19 +20,26 @@ jobs:
         with:
           node-version: '20'
 
-      - run: npm install
-      - run: npm run build
+      - name: Installer dependances
+        run: npm install
 
-      - run: |
+      - name: Builder React
+        run: npm run build
+
+      - name: Initialiser Capacitor Android
+        run: |
           npx cap add android || true
           npx cap sync android
 
-      - run: |
+      - name: Decoder keystore
+        run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/hamed-couture.keystore
 
-      - run: chmod +x android/gradlew
+      - name: Permission Gradle
+        run: chmod +x android/gradlew
 
-      - working-directory: android
+      - name: Compiler APK
+        working-directory: android
         run: |
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=app/hamed-couture.keystore \
@@ -40,7 +47,8 @@ jobs:
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
-      - uses: actions/upload-artifact@v4
+      - name: Uploader APK
+        uses: actions/upload-artifact@v4
         with:
           name: hamed-couture-app
           path: android/app/build/outputs/apk/release/app-release.apk
