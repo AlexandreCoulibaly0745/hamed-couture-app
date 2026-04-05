@@ -1,0 +1,75 @@
+name: Build APK Android
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer dependances
+        run: npm install
+
+      - name: Builder React
+        run: npm run build
+
+      - name: Initialiser Capacitor Android
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Decoder keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > /tmp/hamed-couture.keystore
+
+      - name: Configurer signature
+        run: |
+          cat >> android/app/build.gradle << 'GRADLE'
+
+          android {
+            signingConfigs {
+              release {
+                storeFile file("/tmp/hamed-couture.keystore")
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+              }
+            }
+          }
+          GRADLE
+
+      - name: Permission Gradle
+        run: chmod +x android/gradlew
+
+      - name: Compiler APK
+        working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Uploader APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamed-couture-app
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
