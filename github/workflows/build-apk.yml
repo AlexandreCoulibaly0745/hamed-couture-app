@@ -33,8 +33,7 @@ jobs:
 
       - name: Decoder keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/hamed-couture.keystore
-          ls -la android/app/
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > /tmp/hamed-couture.keystore
 
       - name: Permission Gradle
         run: chmod +x android/gradlew
@@ -43,7 +42,7 @@ jobs:
         working-directory: android
         run: |
           ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$(pwd)/app/hamed-couture.keystore \
+            -Pandroid.injected.signing.store.file=/tmp/hamed-couture.keystore \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
